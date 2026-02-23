@@ -21,23 +21,23 @@
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC drop table lakehousecat1.deltadb.customer_txn;
-# MAGIC drop table lakehousecat1.deltadb.customer_txn_part;
-# MAGIC drop table lakehousecat1.deltadb.drugstbl;
-# MAGIC drop table lakehousecat1.deltadb.drugstbl_merge;
-# MAGIC drop table lakehousecat1.deltadb.drugstbl_partitioned;
-# MAGIC drop table lakehousecat1.deltadb.employee_dv_demo1;
-# MAGIC drop table lakehousecat1.deltadb.product_inventory;
-# MAGIC drop table lakehousecat1.deltadb.tblsales;
+# MAGIC drop table if exists lakehousecat1.deltadb.customer_txn;
+# MAGIC drop table if exists lakehousecat1.deltadb.customer_txn_part;
+# MAGIC drop table if exists lakehousecat1.deltadb.drugstbl;
+# MAGIC drop table if exists lakehousecat1.deltadb.drugstbl_merge;
+# MAGIC drop table if exists lakehousecat1.deltadb.drugstbl_partitioned;
+# MAGIC drop table if exists lakehousecat1.deltadb.employee_dv_demo1;
+# MAGIC drop table if exists lakehousecat1.deltadb.product_inventory;
+# MAGIC drop table if exists lakehousecat1.deltadb.tblsales;
 
 # COMMAND ----------
 
-#spark.sql(f"drop catalog if exists lakehousecat1 cascade")
+spark.sql(f"drop catalog if exists lakehousecat1 cascade")
 spark.sql(f"CREATE CATALOG IF NOT EXISTS lakehousecat1")
 spark.sql(f"CREATE SCHEMA IF NOT EXISTS lakehousecat1.deltadb;")
 spark.sql(f"""CREATE VOLUME IF NOT EXISTS lakehousecat1.deltadb.datalake;""")
-#spark.sql(f"""CREATE VOLUME IF NOT EXISTS lakehousecat1.deltadb.deltavolume;""")
-#spark.sql(f"""CREATE VOLUME IF NOT EXISTS lakehousecat1.deltadb.deltavolume2;""")
+spark.sql(f"""CREATE VOLUME IF NOT EXISTS lakehousecat1.deltadb.deltavolume;""")
+spark.sql(f"""CREATE VOLUME IF NOT EXISTS lakehousecat1.deltadb.deltavolume2;""")
 
 # COMMAND ----------
 
@@ -64,7 +64,9 @@ df.write.saveAsTable("lakehousecat1.deltadb.drugstbl",mode='overwrite')#writing 
 
 # MAGIC %sql
 # MAGIC --under the hood data is stored in S3
-# MAGIC explain select * from lakehousecat1.deltadb.drugstbl
+# MAGIC explain select * from lakehousecat1.deltadb.drugstbl;
+# MAGIC
+# MAGIC --select * from lakehousecat1.deltadb.drugstbl;
 
 # COMMAND ----------
 
@@ -74,7 +76,7 @@ df.write.saveAsTable("lakehousecat1.deltadb.drugstbl",mode='overwrite')#writing 
 # COMMAND ----------
 
 #We can add Schema evolution feature just by adding the below option in Delta tables.
-#df.write.option("mergeSchema","True").saveAsTable("lakehousecat1.deltadb.drugstbl",mode='overwrite')
+df.write.option("mergeSchema","True").saveAsTable("lakehousecat1.deltadb.drugstbl",mode='overwrite')
 
 # COMMAND ----------
 
@@ -358,7 +360,7 @@ print(spark.read.table("drugstbl_merge").count())
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC SELECT count(1) FROM drugstbl_merge TIMESTAMP AS OF '2026-01-31T07:18:52.000+00:00';
+# MAGIC SELECT count(1) FROM drugstbl_merge TIMESTAMP AS OF '2026-02-23 09:08:49';
 
 # COMMAND ----------
 
@@ -378,23 +380,23 @@ print(spark.read.table("drugstbl_merge").count())
 
 # MAGIC %sql
 # MAGIC --use lakehousecat1.deltadb;
-# MAGIC DESC HISTORY prodcatalog.logistics.silver_staff;
+# MAGIC DESC HISTORY logistics.schema.silver_staff;
 
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC select count(1) from prodcatalog.logistics.silver_staff TIMESTAMP AS OF '2026-01-23T03:24:19.000+00:00';
+# MAGIC select count(1) from logistics.schema.silver_staff TIMESTAMP AS OF '2026-02-20 09:47:49';
 
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC alter table prodcatalog.logistics.silver_staff SET TBLPROPERTIES ('delta.deletedFileRetentionDuration' = '24 hours');
-# MAGIC VACUUM prodcatalog.logistics.silver_staff;--default value in databricks, we can reduce or increase this(but in serverless it is not possible to reduce)
+# MAGIC alter table logistics.schema.silver_staff SET TBLPROPERTIES ('delta.deletedFileRetentionDuration' = '24 hours');
+# MAGIC VACUUM logistics.schema.silver_staff;--default value in databricks, we can reduce or increase this(but in serverless it is not possible to reduce)
 
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC SELECT count(1) FROM drugstbl_merge TIMESTAMP AS OF '2026-01-23T03:24:19.000+00:00';
+# MAGIC SELECT count(1) FROM drugstbl_merge TIMESTAMP AS OF '2026-02-23 09:08:49';
 
 # COMMAND ----------
 
@@ -425,7 +427,7 @@ print(spark.read.table("drugstbl_merge").count())
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC SELECT count(1) FROM drugstbl_merge TIMESTAMP AS OF '2026-01-26T16:55:40.000+00:00';
+# MAGIC SELECT count(1) FROM drugstbl_merge TIMESTAMP AS OF '2026-02-23 09:08:49';
 
 # COMMAND ----------
 
@@ -456,7 +458,9 @@ spark.sql("VACUUM drugstbl_merge RETAIN 168 HOURS")
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC describe history acid_demo_txn 
+# MAGIC show tables from lakehousecat1.deltadb;
+# MAGIC     
+# MAGIC --show history acid_demo_txn 
 
 # COMMAND ----------
 
@@ -517,12 +521,17 @@ spark.sql("VACUUM drugstbl_merge RETAIN 168 HOURS")
 # COMMAND ----------
 
 # MAGIC %sql
+# MAGIC select * from acid_demo_txn;
+
+# COMMAND ----------
+
+# MAGIC %sql
 # MAGIC --Apply constraint for maintaining consistancy
 # MAGIC --We can apply in databricks deltatable, 2 types of constraints (check and not null), 
 # MAGIC -- in other DBs we can use primary key, foreign key and unique constraints also..
-# MAGIC ALTER TABLE acid_demo_txn ADD CONSTRAINT positive_amount CHECK (amount > 0);
-# MAGIC INSERT INTO acid_demo_txn VALUES (4, 100);--Atomicity and consistancy
-# MAGIC INSERT INTO acid_demo_txn VALUES (5, -100);--Atomicity and consistancy
+# MAGIC --ALTER TABLE acid_demo_txn ADD CONSTRAINT positive_amount CHECK (amount > 0);
+# MAGIC INSERT INTO acid_demo_txn VALUES (5, 500);--Atomicity and consistancy
+# MAGIC --INSERT INTO acid_demo_txn VALUES (6, -100);--Atomicity and consistancy
 
 # COMMAND ----------
 
@@ -550,7 +559,7 @@ spark.sql("VACUUM drugstbl_merge RETAIN 168 HOURS")
 
 # MAGIC %sql
 # MAGIC --something like savepoint+rollback (but not really a rollback (TCL is not available in Databricks in the name of commit, rollback, savepoint))
-# MAGIC restore table acid_demo_txn to version as of 13;
+# MAGIC --restore table acid_demo_txn to version as of 13;
 
 # COMMAND ----------
 
